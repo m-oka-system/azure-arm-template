@@ -1,0 +1,138 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "location": {
+         "type": "string",
+         "defaultValue": "[resourceGroup().location]",
+         "metadata": {
+              "description": "Location for all resources."
+          }
+      },
+      "partnerLocation": {
+        "type": "string",
+        "defaultValue": "japaneast",
+        "metadata": {
+             "description": "The location of the secondary SQL Server."
+         }
+     },
+      "sqlServerName": {
+        "type": "string",
+        "metadata": {
+          "description": "The name of the primary SQL Server."
+        }
+      },
+      "partnerSqlServerName": {
+        "type": "string",
+        "metadata": {
+          "description": "The name of the secondary SQL Server."
+        }
+      },
+      "sqlLogin": {
+        "type": "string",
+        "metadata": {
+          "description": "The administrator username of the SQL Server."
+        }
+      },
+      "sqlPassword": {
+        "type": "securestring",
+        "metadata": {
+          "description": "The administrator password of the SQL Server."
+        }
+      },
+      "failoverGroupName": {
+         "type": "string",
+         "metadata": {
+              "description": "The name of the failover group."
+          }
+      }
+    },
+    "variables": {
+      "dbName": "MyDatabase",
+      "dbCollation": "JAPANESE_CI_AS",
+      "dbEdition": "Basic",
+      "dbServiceObjective": "Basic",
+      "dbMaxSizeBytes": "1073741824"
+
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Sql/servers",
+        "name": "[parameters('sqlServerName')]",
+        "location": "[parameters('location')]",
+        "apiVersion": "2014-04-01-preview",
+        "properties": {
+          "administratorLogin": "[parameters('sqlLogin')]",
+          "administratorLoginPassword": "[parameters('sqlPassword')]"
+        },
+        "resources": [
+          {
+            "type": "firewallrules",
+            "name": "AllowAllWindowsAzureIps",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2014-04-01-preview",
+            "dependsOn": [
+              "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+            ],
+            "properties": {
+              "startIpAddress": "0.0.0.0",
+              "endIpAddress": "0.0.0.0"
+            }
+          },
+          {
+            "type": "failoverGroups",
+            "apiVersion": "2015-05-01-preview",
+            "name": "[parameters('failoverGroupName')]",
+            "properties": {
+            "serverName": "[parameters('sqlServerName')]",
+              "partnerServers": [
+                {
+                  "id": "[resourceId('Microsoft.Sql/servers/', parameters('partnerSqlServerName'))]"
+                }
+              ],
+              "readWriteEndpoint": {
+                "failoverPolicy": "Automatic",
+                "failoverWithDataLossGracePeriodMinutes": 60
+              },
+              "readOnlyEndpoint": {
+                "failoverPolicy": "Disabled"
+              },
+              "databases": [
+                "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerName'), variables('dbName'))]"
+                ]
+            },
+            "dependsOn": [
+              "[parameters('sqlServerName')]",
+              "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerName'), variables('dbName'))]",
+              "[resourceId('Microsoft.Sql/servers', parameters('partnerSqlServerName'))]"
+            ]
+          },
+          {
+            "type": "databases",
+            "name": "[variables('dbName')]",
+            "location": "[parameters('location')]",
+            "apiVersion": "2014-04-01-preview",
+            "dependsOn": [
+              "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+            ],
+            "properties": {
+              "collation": "[variables('dbCollation')]",
+              "edition": "[variables('dbEdition')]",
+              "maxSizeBytes": "[variables('dbMaxSizeBytes')]",
+              "requestedServiceObjectiveName": "[variables('dbServiceObjective')]"
+            }
+          }
+        ]
+      },
+      {    
+        "type": "Microsoft.Sql/servers",
+        "name": "[parameters('partnerSqlServerName')]",
+        "location": "[parameters('partnerLocation')]",
+        "apiVersion": "2014-04-01-preview",
+        "properties": {
+          "administratorLogin": "[parameters('sqlLogin')]",
+          "administratorLoginPassword": "[parameters('sqlPassword')]"
+        }
+      }
+    ]
+  }

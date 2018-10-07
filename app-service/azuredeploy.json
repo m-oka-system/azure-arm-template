@@ -1,0 +1,53 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "sku": {
+         "type": "string",
+         "defaultValue": "F1",
+         "allowedValues": [
+          "F1",
+          "D1",
+          "B1",
+          "B2",
+          "B3",
+          "S1"
+         ],
+         "metadata": {
+              "description": "The SKU of App Service Plan"
+          }
+      }
+    },
+    "variables": {
+      "appServicePlanName": "w-arm-plan",
+      "webAppName": "w-arm-app"
+    },
+    "resources": [
+      {
+          "apiVersion": "2016-09-01",
+          "name": "[variables('appServicePlanName')]",
+          "type": "Microsoft.Web/serverfarms",
+          "location": "[resourceGroup().location]",
+          "sku": {
+              "name": "[parameters('sku')]",
+              "capacity": 1
+          },
+          "properties": {},
+          "dependsOn": []
+      },
+      {
+        "apiVersion": "2015-08-01",
+        "name": "[variables('webAppName')]",
+        "type": "Microsoft.Web/sites",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+        ],
+        "properties": {
+            "serverFarmId": "[resourceId('Microsoft.Web/serverfarms/', variables('appServicePlanName'))]"
+        }
+      }
+
+    ],
+    "outputs": {}
+}

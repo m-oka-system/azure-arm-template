@@ -1,0 +1,1 @@
+az group deployment validate --resource-group w-arm-rg --template-file .\sql-database\azuredeploy.json --parameters .\sql-database\azuredeploy.parameters.json

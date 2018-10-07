@@ -1,0 +1,92 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sqlServerName": {
+       "type": "string",
+       "metadata": {
+            "description": "The name of the SQL Server."
+      }
+    },
+    "sqlLogin": {
+       "type": "string",
+       "metadata": {
+            "description": "The administrator username of the SQL Server."
+      }
+    },
+    "sqlPassword": {
+       "type": "securestring",
+       "metadata": {
+            "description": "The administrator password of the SQL Server."
+      }
+    },
+    "location": {
+       "type": "string",
+       "defaultValue":"[resourceGroup().location]",
+       "metadata": {
+            "description": "Location of primary region resources"
+       }
+    }
+  },
+  "variables": {
+    "TemplateUrl": "https://raw.githubusercontent.com/shirokuman/azure-arm/master/sql-database-with-failover-group/",
+    "dbTemplateUrl": "[concat(variables('TemplateUrl'),'nested/sql-database.json')]",
+    "partnerResourceGroupName": "e-arm-rg"
+  },
+  "resources": [
+    {
+      "name": "string",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "resourceGroup": "[resourceGroup().name]",
+      "properties": {
+        "templateLink": {
+          "uri": "[variables('dbTemplateUrl')]"
+        },
+        "parameters": {
+          "sqlServerName": {
+            "value": "[parameters('sqlServerName')]"
+          },
+          "sqlLogin": {
+            "value": "[parameters('sqlLogin')]"
+          },
+          "sqlPassword": {
+            "value": "[parameters('sqlPassword')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "mode": "Incremental"
+      }
+    },
+    {
+      "name": "string",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-05-10",
+      "resourceGroup": "[variables('partnerResourceGroupName')]",
+      "properties": {
+        "templateLink": {
+          "uri": "[variables('dbTemplateUrl')]"
+        },
+        "parameters": {
+          "sqlServerName": {
+            "value": "[parameters('sqlServerName')]"
+          },
+          "sqlLogin": {
+            "value": "[parameters('sqlLogin')]"
+          },
+          "sqlPassword": {
+            "value": "[parameters('sqlPassword')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "mode": "Incremental"
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

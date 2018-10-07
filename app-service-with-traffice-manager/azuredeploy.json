@@ -1,0 +1,99 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "sku": {
+         "type": "string",
+         "defaultValue": "F1",
+         "allowedValues": [
+          "F1",
+          "D1",
+          "B1",
+          "B2",
+          "B3",
+          "S1"
+         ],
+         "metadata": {
+              "description": "The SKU of App Service Plan"
+          }
+      }
+    },
+    "variables": {
+      "webAppLocations": ["japanwest", "japaneast"],
+      "appServicePlanName": "w-arm-plan",
+      "webAppName": "w-arm-app",
+      "profileName": "arm-dns-lb"
+    },
+    "resources": [
+      {
+          "apiVersion": "2016-09-01",
+          "name": "[concat(variables('appServicePlanName'), copyIndex())]",
+          "type": "Microsoft.Web/serverfarms",
+          "copy": {
+            "name": "farmloop",
+            "count": "[length(variables('webAppLocations'))]"
+          },
+          "location": "[variables('webAppLocations')[copyIndex()]]",
+          "sku": {
+              "name": "[parameters('sku')]",
+              "capacity": 1
+          },
+          "properties": {},
+          "dependsOn": []
+      },
+      {
+        "apiVersion": "2015-08-01",
+        "name": "[concat(variables('webAppName'), copyIndex())]",
+        "type": "Microsoft.Web/sites",
+        "copy":{
+          "name": "siteloop",
+          "count": "[length(variables('webAppLocations'))]"
+        },
+        "location": "[variables('webAppLocations')[copyIndex()]]",
+        "dependsOn": [
+          "[concat(variables('appServicePlanName'), copyIndex())]"
+        ],
+        "properties": {
+            "serverFarmId": "[concat(variables('appServicePlanName'), copyIndex())]"
+        }
+      },
+      {
+        "apiVersion": "2015-11-01",
+        "type": "Microsoft.Network/trafficManagerProfiles",
+        "name": "[variables('profileName')]",
+        "location": "global",
+        "properties": {
+          "profileStatus":"Enabled",
+          "trafficRoutingMethod":"Priority",
+          "dnsConfig":{
+            "relativeName": "[variables('profileName')]",
+            "ttl": 30
+          },
+          "monitorConfig":{
+            "protocol":"HTTP",
+            "port": 80,
+            "path": "/"
+          }
+        }
+      },
+      {
+        "apiVersion": "2015-11-01",
+        "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+        "dependsOn": [
+          "[concat('Microsoft.Network/trafficManagerProfiles/', variables('profileName'))]",
+          "[concat('Microsoft.Web/sites/', variables('webAppName'), copyindex())]"
+        ],
+        "location": "global",
+        "name": "[concat(variables('profileName'),'/Endpoint', copyIndex())]",
+        "copy": {
+          "name": "endpointloop",
+          "count": "[length(variables('webAppLocations'))]"
+        },
+        "properties": {
+          "targetResourceId": "[resourceId('Microsoft.Web/sites/', concat(variables('webAppName'), copyIndex()))]",
+          "endpointStatus": "Enabled"
+        }
+      }
+    ],
+    "outputs": {}
+}
