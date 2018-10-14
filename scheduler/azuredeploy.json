@@ -1,0 +1,59 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "sasToken": {
+           "type": "securestring",
+           "metadata": {
+                "description": "Sets the SAS key"
+            }
+        }
+    },
+    "variables": {
+        "jobCollectionName": "w-arm-scheduler-1",
+        "jobName": "Scheduler01",
+        "storageAccountName": "warmstorageaccount",
+        "storageQueueName": "queue"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Scheduler/jobCollections",
+            "name": "[variables('jobCollectionName')]",
+            "apiVersion": "2016-03-01",
+            "location": "Japan West",
+            "properties": {
+                "sku": {
+                    "name": "Free"
+                },
+                "state": "Enabled"
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Scheduler/jobCollections/jobs",
+            "name": "[concat(variables('jobCollectionName'), '/', variables('jobName'))]",
+            "apiVersion": "2016-03-01",
+            "properties": {
+                "startTime": "2018-09-10T23:00:00Z",
+                "action": {
+                    "queueMessage": {
+                        "storageAccount": "[variables('storageAccountName')]",
+                        "queueName": "[variables('storageQueueName')]",
+                        "sasToken": "[parameters('sasToken')]",
+                        "message": "Hello!World."
+                    },
+                    "type": "StorageQueue"
+                },
+                "recurrence": {
+                    "frequency": "day",
+                    "interval": 1
+                },
+                "state": "enabled"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Scheduler/jobCollections', variables('jobCollectionName'))]"
+            ]
+        }
+    ],
+    "outputs": {}
+}

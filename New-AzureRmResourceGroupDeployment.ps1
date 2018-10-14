@@ -2,7 +2,7 @@
 $resourceGroupName = "w-arm-rg"
 $location = "Japan West"
 $deploymentName = "SampleDeploy"
-$templatePath = "C:\OneDrive\DS218j\cloud\azure\azure-arm-template\app-service-with-traffice-manager\"
+$templatePath = "C:\OneDrive\DS218j\cloud\azure\azure-arm-template\virtual-machine\"
 $templateFile = "azuredeploy.json"
 $templateParameterFile = "azuredeploy.parameters.json"
 $template = $templatePath + $templateFile
@@ -35,3 +35,7 @@ New-AzureRmResourceGroupDeployment -ResourceGroupName $resourceGroupName `
     -Name $deploymentName `
     -TemplateFile $template -Verbose -Force `
     -Mode Complete
+
+# Stop deployment
+Stop-AzureRmResourceGroupDeployment -ResourceGroupName $resourceGroupName `
+    -Name $deploymentName

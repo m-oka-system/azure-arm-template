@@ -1,0 +1,67 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {
+      "vnetName": "w-arm-vnet",
+      "vnetPrefix": "192.168.0.0/16",
+      "subnet1Name": "subnet1",
+      "subnet1Prefix": "192.168.0.0/24",
+      "nsgName": "w-arm-nsg",
+      "ruleName": "Allow-Inbound-RDP-Internet"
+    },
+    "resources": [
+      {
+        "apiVersion": "2017-06-01",
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "name": "[variables('nsgName')]",
+        "location": "[resourceGroup().location]",
+        "properties": {
+            "securityRules": [
+              {
+                "name": "[variables('ruleName')]",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "3389",
+                  "sourceAddressPrefix": "Internet",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 100,
+                  "direction": "Inbound"
+                }
+              }
+            ]
+        }
+      },
+      {
+        "apiVersion": "2015-06-15",
+        "type": "Microsoft.Network/virtualNetworks",
+        "name": "[variables('vnetName')]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[concat('Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]"
+        ],
+        "properties": {
+            "addressSpace": {
+                "addressPrefixes": [
+                    "[variables('vnetPrefix')]"
+                ]
+            },
+            "subnets": [
+                {
+                    "name": "[variables('subnet1Name')]",
+                    "properties": {
+                        "addressPrefix": "[variables('subnet1Prefix')]",
+                        "networkSecurityGroup": {
+                          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+
+    ],
+    "outputs": {}
+}
